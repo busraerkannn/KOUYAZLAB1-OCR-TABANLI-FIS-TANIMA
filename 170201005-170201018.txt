@@ -1,0 +1,877 @@
+package Proje;
+
+
+import static org.opencv.imgcodecs.Imgcodecs.imread;
+import static org.opencv.imgcodecs.Imgcodecs.imwrite;
+import static org.opencv.imgproc.Imgproc.COLOR_BGR2GRAY;
+import static org.opencv.imgproc.Imgproc.cvtColor;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Random;
+import java.util.Scanner;
+
+import javax.swing.JFrame;
+
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
+
+import net.sourceforge.tess4j.Tesseract;
+import net.sourceforge.tess4j.TesseractException;
+
+
+/**
+ * Recognize text from image
+ * 
+ * 
+ *
+ */
+public class OpenCV {
+
+	private Random rng=new Random(12345);
+	
+	// Source path content images
+	static String SRC_PATH = "C:\\Users\\gozde\\eclipse-workspace\\Proje\\";
+	static String TESS_DATA = "C:\\Program Files (x86)\\Tesseract-OCR\\tessdata";
+	
+	static Tesseract tesseract = new Tesseract();
+	
+	static {
+		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+		tesseract.setDatapath(TESS_DATA);
+	}
+		
+	
+	String extractTextFromImage(Mat inputMat) {
+		String result = "";
+	
+		Mat gray = new Mat();
+		// Convert to gray scale
+		cvtColor(inputMat, gray, COLOR_BGR2GRAY);
+		imwrite(SRC_PATH + "gray.png", gray);
+		
+		
+		Mat gaussian = new Mat();
+		Imgproc.GaussianBlur(gray, gaussian, new Size(5,5),0);
+		imwrite(SRC_PATH + "gaussian.png", gaussian);
+		
+		Mat dst = new Mat();
+		Imgproc.adaptiveThreshold(gaussian, dst,255, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C,Imgproc.THRESH_BINARY, 75, 12); //11 12 //91 12
+		imwrite(SRC_PATH + "adaptive.png", dst);
+		
+		Mat threshold = new Mat();
+		Imgproc.threshold(dst, threshold, 0, 255, Imgproc.THRESH_OTSU + Imgproc.THRESH_BINARY);
+		imwrite(SRC_PATH + "threshold.png", threshold);
+		
+		Mat erode = new Mat();
+		Imgproc.erode(threshold, erode, Imgproc.getStructuringElement(Imgproc.MORPH_ERODE, new Size(9,9)));
+		imwrite(SRC_PATH + "erode.png", erode);
+		
+		Mat dilate = new Mat();
+		Imgproc.dilate(erode, dilate, Imgproc.getStructuringElement(Imgproc.MORPH_DILATE, new Size(7,7)));
+		imwrite(SRC_PATH + "dilate.png", dilate);
+
+
+		/*Mat gray = new Mat();
+		// Convert to gray scale
+		cvtColor(inputMat, gray, COLOR_BGR2GRAY);
+		imwrite(SRC_PATH + "gray.png", gray);
+		
+		Mat dst = new Mat();
+		//Imgproc.adaptiveThreshold(gray, dst,125, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C,Imgproc.THRESH_BINARY, 11, 12); //11 12 //91 12
+		Imgproc.adaptiveThreshold(gray, dst, 125, Imgproc.ADAPTIVE_THRESH_MEAN_C,Imgproc.THRESH_BINARY, 81, 21); //11 12 - 91 12 - 51 12 - 51 17
+
+		imwrite(SRC_PATH + "adaptive.png", dst);*/
+		
+		
+		try {
+			tesseract.setLanguage("tur");
+			//tesseract.setPageSegMode(1);
+			// Recognize text with OCR
+			result = tesseract.doOCR(new File(SRC_PATH + "adaptive.png"));
+			
+		} catch (TesseractException e) {
+			e.printStackTrace();
+		}
+
+		return result;
+	}
+	
+	
+	
+	public static void main(String[] args)throws IOException {
+		
+		
+				
+		Arayuz a1=new Arayuz();
+		try {
+			a1.setVisible(true);
+			Thread.sleep(10000);
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		
+		long start = System.currentTimeMillis();
+		//System.out.println(a1.img);
+
+		//Mat origin = imread(SRC_PATH + "Fis10.png");
+		
+		Mat origin = imread(a1.img);
+				
+		String result = new OpenCV().extractTextFromImage(origin);
+		
+		File file = new File("text.txt");
+		
+		try(BufferedWriter writer = new BufferedWriter(new FileWriter(file))){
+			
+			writer.write(result);
+
+		} catch (IOException e) {
+			
+		    System.out.println("Unable to read file " +file.toString());
+		}
+		
+		File file2 = new File("kontrol.txt");
+		BufferedReader reader = null;
+        reader = new BufferedReader(new FileReader(file2));
+        
+        File file3 = new File("kontrol2.txt");
+		BufferedReader reader2 = null;
+        reader2 = new BufferedReader(new FileReader(file3));
+        
+        
+        String satir=null;
+        satir = reader.readLine();
+		ArrayList<String> kontrol=new ArrayList<String>();
+		ArrayList<String> kontrol2=new ArrayList<String>();
+		
+		kontrol.add("TEŞEKKÜRLER"); kontrol.add("TESEKKURLER"); kontrol.add("TESEKKÖRLER"); kontrol.add("TEŞEKKÖRLER"); kontrol.add("TESEKKORLER");kontrol.add("TEŞEKKORLER");
+		kontrol.add("İYİ GÜNLER"); kontrol.add("IYI GUNLER"); kontrol.add("İYİ GUNLER");  kontrol.add("IYI GÜNLER"); kontrol.add("İYİ GÖNLER"); kontrol.add("İYİ GONLER"); 
+		kontrol.add("TARİH");  kontrol.add("TARIH"); kontrol.add("ARİH");  kontrol.add("ARIH");  kontrol.add("TARİK");kontrol.add("TARIK"); kontrol.add("ARİK");  kontrol.add("ARIK");  
+		kontrol.add("FİŞ"); kontrol.add("FİŞNO"); kontrol.add("FIŞ"); kontrol.add("FIŞNO"); kontrol.add("FIS"); kontrol.add("FISNO"); kontrol.add("FİS"); kontrol.add("FİSNO"); kontrol.add("FİSŞ"); 
+		kontrol.add("İŞ"); kontrol.add("İŞNO"); kontrol.add("IŞ"); kontrol.add("IŞNO"); kontrol.add("IS"); kontrol.add("ISNO");kontrol.add("İS");  kontrol.add("İSNO");
+		kontrol.add("0"); kontrol.add("1"); kontrol.add("2"); kontrol.add("3"); kontrol.add("4"); kontrol.add("5"); kontrol.add("6"); kontrol.add("7"); kontrol.add("8"); kontrol.add("9"); 
+
+		kontrol2.add("&"); kontrol2.add("%");  
+		kontrol2.add("408"); kontrol2.add("418"); kontrol2.add("508"); kontrol2.add("518"); kontrol2.add("008"); kontrol2.add("018"); kontrol2.add("108"); kontrol2.add("118"); kontrol2.add("08"); kontrol2.add("18"); kontrol2.add("4108"); kontrol2.add("4118"); 
+		kontrol2.add("*"); kontrol2.add("$"); kontrol2.add("1"); kontrol2.add("#"); kontrol2.add("8"); kontrol2.add("t"); kontrol2.add("4");
+		kontrol2.add("%08");kontrol2.add("&08");kontrol2.add("5118");kontrol2.add("5008");kontrol2.add("708");kontrol2.add("718");kontrol2.add("%18");kontrol2.add("&18");
+		
+		
+		File file4 = new File("text.txt");
+		Scanner dosya = null;
+		dosya = new Scanner(file4);
+		Locale dosya2= null;
+		//dosya2 = new Scanner(file4);
+
+		String isletmeAdi=null;
+		boolean bitir=true;
+		boolean bitir2=true;
+		
+		while(dosya.hasNextLine() && bitir) {
+			isletmeAdi=dosya.nextLine();
+			if(isletmeAdi.contains(":") || isletmeAdi.contains(";") || isletmeAdi.contains("“") || isletmeAdi.contains("|"))
+			{
+				isletmeAdi=dosya.nextLine();
+			}
+					
+			for(int j=0;j<kontrol.size();j++)
+			{
+				if(isletmeAdi.equalsIgnoreCase(kontrol.get(j)))
+				{
+					isletmeAdi=dosya.nextLine();
+					bitir=false;
+					break;
+				}
+				else
+				{
+					bitir=false;
+					//str=dosya.next();
+					break;
+				}
+			}
+			
+		}
+		a1.veri.add(isletmeAdi);
+		String tarih=null;
+		bitir=true;
+		while(dosya.hasNext() && bitir) {
+			tarih=dosya.next();			
+			for(int j=0;j<kontrol.size();j++ )
+			{
+				if(tarih.equalsIgnoreCase(kontrol.get(j)))
+				{
+					tarih=dosya.next();
+					tarih=dosya.next();
+					
+					if(tarih.equals("—"))
+					{
+						tarih=dosya.next();
+						tarih=dosya.next();						
+					}
+					if(tarih.equals(":"))
+					{
+						tarih=dosya.next();
+					}
+					bitir=false;
+				}
+			}
+		}
+		bitir=true;
+		a1.veri.add(tarih);
+		
+		String fisNo=null;
+		while(dosya.hasNext() && bitir) {
+			fisNo=dosya.next();
+			for(int j=0;j<kontrol.size();j++ )
+			{
+				if(fisNo.equals(kontrol.get(j)))
+				{
+					fisNo=dosya.next();
+					fisNo=dosya.next();
+					fisNo=dosya.next();						
+
+					if(fisNo.equals("—"))
+					{
+						fisNo=dosya.next();
+						fisNo=dosya.next();						
+					}
+					
+					bitir=false;
+				}
+			}
+		}
+		
+		a1.veri.add(fisNo);
+		
+		bitir=true;
+		boolean bitir3=true;
+		boolean bitir4=false;
+		boolean bitir5=true;
+		boolean bitir6=true;
+		boolean bitir7=true;
+		boolean bitir8=true;
+
+		String urun=null;
+		String tumUrun=null;
+		String kdv=null;
+		String fiyat=null;
+		String tumFiyat=null;
+
+		
+		while(dosya.hasNext() && bitir)
+		{
+			urun=dosya.next();
+			if(urun.contains("KDV") || urun.contains("kdv") || urun.contains("KODV"))
+			{
+				bitir = false;
+			}
+			String str=urun;
+			
+			for (int j = 0; j < kontrol.size(); j++) {
+				
+				if((urun.contains(kontrol.get(j)) || urun.contains("|") || urun.contains("—") || urun.contains(".") || urun.contains("'")) && bitir  )
+				{
+					urun=dosya.next();
+					if(urun.contains("X") || urun.contains("KG") || urun.contains("K"))
+					{
+						urun=dosya.nextLine();
+						bitir4=true;
+						break;
+					}
+					
+				}
+				
+			}
+			if(bitir4==false && bitir)
+			{
+				tumUrun=str;
+			}
+			while(dosya.hasNext() && bitir3 && bitir)
+			{
+				urun=dosya.next();
+				for (int j = 0; j<kontrol2.size(); j++) {
+					if(urun.equals(kontrol2.get(j)) || urun.equals("*|"))
+					{
+
+						
+						if(urun.contains("%08") || urun.contains("&08") || urun.contains("408") || urun.contains("508") || urun.contains("008") || urun.contains("108") || urun.contains("08") || urun.contains("708") || urun.contains("4108") || urun.contains("5008") )
+						{
+							kdv="08";
+						}
+						else if(urun.contains("%18") || urun.contains("&18") || urun.contains("418") || urun.contains("518") || urun.contains("018") || urun.contains("118") || urun.contains("18") ||  urun.contains("718") || urun.contains("4118") || urun.contains("5118"))
+						{
+							kdv="18";
+						}
+					
+						
+						
+						
+						bitir3=false;
+						break;
+					}
+				}
+				if(bitir3==false)
+				{
+					fiyat=dosya.next();
+					if(fiyat.equals("—"))
+					{
+						fiyat=dosya.next();
+
+					}
+					
+					for (int j = 0; j < kontrol2.size(); j++) {
+
+						if((fiyat.charAt(0)==kontrol2.get(j).charAt(0)) && (fiyat.length()>2) && bitir7)
+						{
+							tumFiyat=fiyat.substring(1,fiyat.length());
+							bitir7=false;
+							break;
+							
+						}
+					}
+						if(fiyat.length()<=2)
+						{
+							tumFiyat=fiyat.substring(1);
+							if(tumFiyat.equals(")"))
+							{
+								tumFiyat="1";
+							}
+						}
+						if(bitir7)
+						{
+							fiyat=dosya.next();
+							if(fiyat.length()==2)
+							{
+								tumFiyat=tumFiyat+","+fiyat;
+								bitir5=false;
+								break;
+							}
+						}
+						
+						
+					
+					
+				}
+				if(bitir4)
+				{
+					tumUrun=urun;
+					bitir4=false;
+				}
+				else if(bitir3)
+				{
+					tumUrun=tumUrun+" "+urun;
+				}
+			}
+			if(bitir==true)
+			{
+				a1.urun.add(tumUrun);
+				a1.kdv.add(kdv);
+				a1.fiyat.add(tumFiyat);
+			}
+			
+			
+			bitir3=true;
+			bitir4=false;
+			bitir5=true;
+			bitir6=true;
+			bitir7=true;
+		}
+		
+		String fis,toplamFiyat=null;
+		while(dosya.hasNext() && (bitir5 || bitir8))
+		{
+			fis=dosya.next();
+			if(fis.contains("TOPLAM") || fis.contains("toplam"))
+			{
+				fis=dosya.next();
+				if(fis.equals("—"))
+				{
+					fis=dosya.next();
+				}
+				for (int j = 0; j < kontrol2.size(); j++) {
+
+					if((fis.charAt(0)==kontrol2.get(j).charAt(0)) && (fis.length()>2) && bitir8)
+					{
+						toplamFiyat=fis.substring(1,fis.length());
+						bitir8=false;
+						break;
+						
+					}
+				}
+				if(fis.length()<=2)
+				{
+					toplamFiyat=fis.substring(1);
+					if(toplamFiyat.equals(")"))
+					{
+						toplamFiyat="1";
+					}
+				}
+				if(bitir8)
+				{
+					fis=dosya.next();
+					if(fis.length()==2)
+					{
+						toplamFiyat=toplamFiyat+","+fis;
+						bitir5=false;
+						break;
+					}
+				}
+			}
+		}
+		a1.veri.add(toplamFiyat);
+		
+				
+		
+	}
+	
+}
+
+
+package Proje;
+
+import java.awt.Color;
+import java.awt.EventQueue;
+import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+
+import javax.swing.DefaultListModel;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JTextField;
+import javax.swing.border.EmptyBorder;
+import javax.swing.filechooser.FileSystemView;
+import javax.swing.table.DefaultTableModel;
+
+public class Arayuz extends JFrame {
+
+	private JPanel contentPane;
+	private JTextField text_IsletmeAd;
+	private JTextField text_Tarih;
+	private JTable table;
+	
+	public String img;
+	
+	DefaultTableModel modelim = new DefaultTableModel();
+	Object[] kolonlar = {"İşletme Adı","Tarih","Fiş No","Ürün Adı","Ürün KDV","Ürün Fiyat","Toplam"};
+	Object[] satirlar = new Object[7];
+	
+	ArrayList<String> veri = new ArrayList<String>();
+	ArrayList<String> urun = new ArrayList<String>();
+	ArrayList<String> kdv = new ArrayList<String>();
+	ArrayList<String> fiyat = new ArrayList<String>();
+
+	
+	/**
+	 * Launch the application.
+	 */
+	public static void main(String[] args) {
+		EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				try {
+					Arayuz frame = new Arayuz();
+					frame.setVisible(true);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				
+			}
+		});
+	}
+
+	/**
+	 * Create the frame.
+	 */
+	
+	JButton btn2;
+	private JTable table_1;
+	private JTable table_2;
+	private JTable tablo;
+	public void  fisYukle(String img)
+    {
+		JButton button = new JButton(new ImageIcon(((new ImageIcon(img)).getImage()).getScaledInstance(400, 400, java.awt.Image.SCALE_SMOOTH)));
+		button.setBounds(71, 26, 367, 405);
+		contentPane.add(button);
+    }
+	
+	public Arayuz() {
+	
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setBounds(100, 100, 1300, 800);
+		setLocation(300, 100);
+		
+		contentPane = new JPanel();
+		contentPane.setBackground(new Color(95, 158, 160));
+		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+		setContentPane(contentPane);
+		contentPane.setLayout(null);
+		
+	    JScrollPane scrollPane = new JScrollPane();
+		scrollPane.setBounds(71, 26, 350, 400);
+		contentPane.add(scrollPane);
+		scrollPane.setSize(350, 400);
+	
+		JScrollPane scrollPane_1 = new JScrollPane();
+		scrollPane_1.setBounds(81, 495, 826, 234);
+		//scrollPane_1.setBorder(new EmptyBorder(5, 5, 5, 5));
+		//scrollPane_1.setLayout(null);
+		contentPane.add(scrollPane_1);
+		
+		
+		
+		JScrollPane scrollPane_2 = new JScrollPane();
+		scrollPane_2.setBounds(521, 26, 376, 400);
+		contentPane.add(scrollPane_2);
+		
+		JList list = new JList();
+		list.setFont(new Font("Tahoma", Font.BOLD, 16));
+		scrollPane_2.setViewportView(list);
+		
+		JLabel lblNewLabel = new JLabel("ARAMA");
+		lblNewLabel.setFont(new Font("Tahoma", Font.BOLD, 17));
+		lblNewLabel.setBounds(1064, 57, 77, 21);
+		contentPane.add(lblNewLabel);
+		
+		text_IsletmeAd = new JTextField();
+		text_IsletmeAd.setBounds(1113, 117, 116, 22);
+		contentPane.add(text_IsletmeAd);
+		text_IsletmeAd.setColumns(10);
+		
+		text_Tarih = new JTextField();
+		text_Tarih.setBounds(1113, 174, 116, 22);
+		contentPane.add(text_Tarih);
+		text_Tarih.setColumns(10);
+		
+		JLabel lbl_IsletmeAd = new JLabel("İşletme Adı");
+		lbl_IsletmeAd.setFont(new Font("Tahoma", Font.BOLD, 15));
+		lbl_IsletmeAd.setBounds(976, 117, 121, 21);
+		contentPane.add(lbl_IsletmeAd);
+		
+		JLabel lbl_Tarih = new JLabel("Tarih");
+		lbl_Tarih.setFont(new Font("Tahoma", Font.BOLD, 15));
+		lbl_Tarih.setBounds(1024, 174, 77, 21);
+		contentPane.add(lbl_Tarih);
+
+		JButton btnFis = new JButton("Fiş Seç");
+		btnFis.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				
+				JFileChooser fileChooser = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+
+				int returnValue = fileChooser.showOpenDialog(null);
+				File selectedFile=null;
+
+				if (returnValue == JFileChooser.APPROVE_OPTION) {
+					
+					selectedFile = fileChooser.getSelectedFile();
+					//System.out.println(selectedFile.getAbsolutePath());
+					img=selectedFile.getAbsolutePath();
+					scrollPane.setVisible(false);
+					fisYukle(img);						
+				}
+				
+			
+			}
+		});
+		
+		btnFis.setFont(new Font("Tahoma", Font.BOLD, 15));
+		btnFis.setBounds(192, 439, 97, 38);
+		contentPane.add(btnFis);
+		
+		tablo = new JTable();
+		modelim.setColumnIdentifiers(kolonlar);
+		tablo.setBounds(81, 495, 826, 234);
+		scrollPane_1.setViewportView(tablo);
+		
+		JButton btnTablo = new JButton("Tablo");
+		btnTablo.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				
+				modelim.setRowCount(0);
+				ResultSet myRs = VeriBaglanti.baglan();
+				
+				try {
+					
+					while(myRs.next())
+					{
+						satirlar[0] = myRs.getString("isletmeAdi");
+						satirlar[1] = myRs.getString("tarih");
+						satirlar[2] = myRs.getString("fisNo");
+						satirlar[3] = myRs.getString("urunAdi");
+						satirlar[4] = myRs.getString("urunKDV");
+						satirlar[5] = myRs.getString("urunFiyat");
+						satirlar[6] = myRs.getString("toplam");
+						
+						modelim.addRow(satirlar);
+					}
+				} catch (Exception e) {
+					// TODO: handle exception
+				}
+				
+				tablo.setModel(modelim);
+				
+			}
+		});
+		btnTablo.setFont(new Font("Tahoma", Font.BOLD, 15));
+		btnTablo.setBounds(953, 579, 128, 38);
+		contentPane.add(btnTablo);
+		
+		
+		JButton btnVeriEkle = new JButton("Veri Ekle");
+		btnVeriEkle.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				
+				String sql_sorgu, ad,tarih,fisNo,urunAdi,urunKDV,urunFiyat,toplam;
+				
+				/*ad = veri.get(0);
+				tarih = veri.get(1);
+				fisNo = veri.get(2);
+				urunAdi = urun.get(1);
+				urunKDV = kdv.get(1);
+				urunFiyat = fiyat.get(1);
+				toplam = veri.get(1);
+				
+				sql_sorgu = "INSERT INTO fisveri (isletmeAdi,tarih,fisNo,urunAdi,urunKDV,urunFiyat,toplam) VALUES (" + "'" +  ad +  "'," + "'" + tarih + "','" + fisNo + "','" + urunAdi + "','"  + urunKDV + "','" + urunFiyat + "','" + toplam + "')";
+      			VeriBaglanti.ekle(sql_sorgu);*/
+
+				ad = veri.get(0);
+				tarih = veri.get(1);
+				fisNo = veri.get(2);
+				toplam = veri.get(3);
+	
+				for (int i = 0; i < urun.size(); i++) {
+
+					urunAdi = urun.get(i);
+					urunKDV = kdv.get(i);
+					urunFiyat = fiyat.get(i);
+					
+					sql_sorgu = "INSERT INTO fisveri (isletmeAdi,tarih,fisNo,urunAdi,urunKDV,urunFiyat,toplam) VALUES (" + "'" +  ad +  "'," + "'" + tarih + "','" + fisNo + "','" + urunAdi + "','"  + urunKDV + "','" + urunFiyat + "','" + toplam + "')";
+					//System.out.println(sql_sorgu);
+					
+					try {
+		      			VeriBaglanti.ekle(sql_sorgu);
+						//Thread.sleep(5000);
+					} catch (Exception e) {
+						// TODO: handle exception
+					}
+					
+				}
+				
+				
+			}
+		});
+		btnVeriEkle.setFont(new Font("Tahoma", Font.BOLD, 15));
+		btnVeriEkle.setBounds(632, 439, 121, 38);
+		contentPane.add(btnVeriEkle);
+
+		JButton btn_Secim = new JButton("Ara");
+		btn_Secim.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+								
+				String bilgi = null;
+				String isletmeAdi = null;
+				String tarih = null;
+				isletmeAdi = text_IsletmeAd.getText();
+				tarih = text_Tarih.getText();
+
+				ResultSet myRs = null;
+				
+				if(tarih.isEmpty())
+				{
+					bilgi = isletmeAdi;
+					modelim.setRowCount(0);		
+					myRs = VeriBaglanti.araIsletmeAdi(bilgi);
+
+					try {
+						while(myRs.next())
+						{
+							satirlar[0] = myRs.getString("isletmeAdi");
+							satirlar[1] = myRs.getString("tarih");
+							satirlar[2] = myRs.getString("fisNo");
+							satirlar[3] = myRs.getString("urunAdi");
+							satirlar[4] = myRs.getString("urunKDV");
+							satirlar[5] = myRs.getString("urunFiyat");
+							satirlar[6] = myRs.getString("toplam");
+							
+							modelim.addRow(satirlar);
+						}
+					} catch (SQLException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					table_1.setModel(modelim);
+				}
+				
+				if(isletmeAdi.isEmpty())
+				{
+					bilgi = tarih;
+					modelim.setRowCount(0);		
+					myRs = VeriBaglanti.araTarih(bilgi);
+
+					try {
+						while(myRs.next())
+						{
+							satirlar[0] = myRs.getString("isletmeAdi");
+							satirlar[1] = myRs.getString("tarih");
+							satirlar[2] = myRs.getString("fisNo");
+							satirlar[3] = myRs.getString("urunAdi");
+							satirlar[4] = myRs.getString("urunKDV");
+							satirlar[5] = myRs.getString("urunFiyat");
+							satirlar[6] = myRs.getString("toplam");
+							
+							modelim.addRow(satirlar);
+						}
+					} catch (SQLException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					table_1.setModel(modelim);
+				}
+			}
+		});
+		
+		btn_Secim.setFont(new Font("Tahoma", Font.BOLD, 15));
+		btn_Secim.setBounds(1056, 240, 97, 41);
+		contentPane.add(btn_Secim);
+		
+		JButton btnParseEt = new JButton("Liste");
+		btnParseEt.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				
+				try {
+				Thread.sleep(5000);
+				DefaultListModel DLM = new DefaultListModel();
+				/*String isletmeAdi = veri.get(0);
+				String tarih= veri.get(1);
+				String fisNo = veri.get(0);*/
+				DLM.addElement(veri.get(0));
+				DLM.addElement(veri.get(1));
+				DLM.addElement(veri.get(2));
+				
+				for (int i = 0; i < urun.size(); i++) {
+					DLM.addElement(urun.get(i));
+					DLM.addElement(kdv.get(i));
+					DLM.addElement(fiyat.get(i));
+				}
+				
+				DLM.addElement(veri.get(3));
+				list.setModel(DLM);
+			} catch (Exception e) {
+				// TODO: handle exception
+			}
+		}
+		});
+		btnParseEt.setFont(new Font("Tahoma", Font.BOLD, 15));
+		btnParseEt.setBounds(412, 439, 97, 38);
+		contentPane.add(btnParseEt);
+		
+		
+
+	}
+}
+
+
+package Proje;
+
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+import com.mysql.jdbc.Connection;
+import com.mysql.jdbc.Statement;
+
+public class VeriBaglanti {
+	
+	static Connection myConn;
+	static Statement myStat;
+	
+	static ResultSet baglan()
+	{
+		ResultSet myRs = null;
+		
+		try {
+			
+			myConn = (Connection) DriverManager.getConnection("jdbc:mysql://localhost:3306/veri","root","1813");
+			myStat = (Statement) myConn.createStatement();
+			myRs = myStat.executeQuery("select * from fisveri");
+
+			
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
+	
+		return myRs;
+	}
+	
+	static void ekle(String sql_sorgu)
+	{
+		try {
+			myStat.executeUpdate(sql_sorgu);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	static ResultSet araIsletmeAdi(String bilgi){
+		
+		ResultSet myRs2=null;
+		
+		try {
+			
+			myConn = (Connection) DriverManager.getConnection("jdbc:mysql://localhost:3306/veri","root","1813");
+			myStat = (Statement) myConn.createStatement();
+			myRs2 = myStat.executeQuery("select * from fisveri where isletmeAdi = '" + bilgi + "';");
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		return myRs2;
+	}
+	
+static ResultSet araTarih(String bilgi){
+		
+		ResultSet myRs2=null;
+		
+		try {
+			
+			myConn = (Connection) DriverManager.getConnection("jdbc:mysql://localhost:3306/veri","root","1813");
+			myStat = (Statement) myConn.createStatement();
+			myRs2 = myStat.executeQuery("select * from fisveri where tarih = '" + bilgi + "';");
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		return myRs2;
+	}
+	
+	
+
+}
+
+
+
